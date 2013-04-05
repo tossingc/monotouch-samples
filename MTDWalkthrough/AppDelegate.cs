@@ -40,7 +40,7 @@ namespace MTDWalkthrough
 				
 				var element = new EntryElement (task.Name, "Enter task description", task.Description);
                 
-				var taskElement = new RootElement (task.Name){
+				var taskElement = (Element)new RootElement (task.Name){
                     new Section () { 
 						element
 					},
