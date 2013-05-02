@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicCube", "MusicCube.csproj", "{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|iPhoneSimulator = Debug|iPhoneSimulator
+		Release|iPhoneSimulator = Release|iPhoneSimulator
+		Debug|iPhone = Debug|iPhone
+		Release|iPhone = Release|iPhone
+		Ad-Hoc|iPhone = Ad-Hoc|iPhone
+		AppStore|iPhone = AppStore|iPhone
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Ad-Hoc|iPhone.ActiveCfg = Ad-Hoc|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Ad-Hoc|iPhone.Build.0 = Ad-Hoc|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.AppStore|iPhone.ActiveCfg = AppStore|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.AppStore|iPhone.Build.0 = AppStore|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Debug|iPhone.ActiveCfg = Debug|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Debug|iPhone.Build.0 = Debug|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Debug|iPhoneSimulator.ActiveCfg = Debug|iPhoneSimulator
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Debug|iPhoneSimulator.Build.0 = Debug|iPhoneSimulator
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Release|iPhone.ActiveCfg = Release|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Release|iPhone.Build.0 = Release|iPhone
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Release|iPhoneSimulator.ActiveCfg = Release|iPhoneSimulator
+		{E5EA0DA9-ACFE-48B8-A2BE-131A2CDC9F11}.Release|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = MusicCube.csproj
+	EndGlobalSection
+EndGlobal
