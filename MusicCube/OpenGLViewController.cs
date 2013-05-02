@@ -68,8 +68,8 @@ namespace MusicCube
 
 		public override bool ShouldAutorotate ()
 		{
+			// rotation causing undesirable behavior - disable for now
 			return false;
-			//return base.ShouldAutorotate ();
 		}
 
 	}

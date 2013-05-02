@@ -1,7 +1,6 @@
 using System;
 
 using OpenTK;
-using OpenTK.Graphics.ES20;
 using GL1 = OpenTK.Graphics.ES11.GL;
 using All1 = OpenTK.Graphics.ES11.All;
 using OpenTK.Platform.iPhoneOS;
@@ -19,160 +18,106 @@ namespace MusicCube
 	[Register ("EAGLView")]
 	public class EAGLView : iPhoneOSGameView
 	{
-
-		[Export("initWithCoder:")]
+		
+		private bool started = false;
+		
+		[Export ("initWithCoder:")]
 		public EAGLView (NSCoder coder) : base (coder)
 		{
-			LayerRetainsBacking = true;
+			LayerRetainsBacking = false;
 			LayerColorFormat = EAGLColorFormat.RGBA8;
-
 			ContextRenderingApi = EAGLRenderingAPI.OpenGLES1;
 		}
-
-		public override void LayoutSubviews ()
+		
+		protected override void OnLoad (EventArgs e)
 		{
-			base.LayoutSubviews ();
-
-			// initial setup - pulled from initWithCoder - moved here because GL.GenTextures(..) was not working in the EAGLView constructor
-				
+			base.OnLoad (e);
+			
 			mode = 1;
-				
+			
 			// create vertex arrays for the circle paths
 			this.BuildCircleVertices (ref innerCircleVertices, kCircleSegments, kInnerCircleRadius);
 			this.BuildCircleVertices (ref outerCircleVertices, kCircleSegments, kOuterCircleRadius);
-				
+			
 			// load textures
 			string[] textureName = { @"speaker.png", @"nums.png", @"info.png", @"instr.png", @"description.png" };		
-				
-			GL.GenTextures (5, texture);
-				
+			
+			GL1.GenTextures (5, texture);
+			
 			int i;
 			for (i=0; i<5; i++) {
-				GL.BindTexture (TextureTarget.Texture2D, texture [i]);
+				GL1.BindTexture (All1.Texture2D, texture [i]);
 				this.LoadTexture (textureName [i]);
 			}
-				
-			GL.BindTexture (TextureTarget.Texture2D, 0);
-
+			
+			GL1.BindTexture (All1.Texture2D, 0);
+			
 			// pulled from original layoutSubViews method
-			this.DestroyFrameBuffer ();
-			this.CreateFrameBuffer ();
-
 			this.SetTeapotMaterial ();
-			this.DrawView ();
-
+			
 			if (!showDesc)
 				playback.StartSound ();
 		}
-
-		#region Starter Code
-
+		
 		[Export ("layerClass")]
 		public static new Class GetLayerClass ()
 		{
 			return iPhoneOSGameView.GetLayerClass ();
 		}
-
+		
 		protected override void ConfigureLayer (CAEAGLLayer eaglLayer)
 		{
 			eaglLayer.Opaque = true;
 		}
-
-		protected override void CreateFrameBuffer ()
-		{
-			base.CreateFrameBuffer ();
-
-			GL.GetRenderbufferParameter (RenderbufferTarget.Renderbuffer, RenderbufferParameterName.RenderbufferWidth, out backingWidth);
-			GL.GetRenderbufferParameter (RenderbufferTarget.Renderbuffer, RenderbufferParameterName.RenderbufferHeight, out backingHeight);
-
-			// initialize playback
-			// the sound source (cube) starts at the center
-			playback.SourcePos [0] = playback.SourcePos [1] = playback.SourcePos [2] = 0;
-			// the listener (teapot) starts on the left side (in landscape)
-			playback.ListenerPos [0] = 0;
-			playback.ListenerPos [1] = (kInnerCircleRadius + kOuterCircleRadius) / 2.0f;
-			playback.ListenerPos [2] = 0;
-			// and points to the source (cube)
-			playback.ListenerRotation = 0;
-		}
-
-		#region DisplayLink support
-
-		int frameInterval;
-		CADisplayLink displayLink;
-
+		
 		public bool IsAnimating { get; private set; }
-
-		// How many display frames must pass between each time the display link fires.
-		public int FrameInterval {
-			get {
-				return frameInterval;
-			}
-			set {
-				if (value <= 0)
-					throw new ArgumentException ();
-				frameInterval = value;
-				if (IsAnimating) {
-					StopAnimating ();
-					StartAnimating ();
-				}
-			}
-		}
-
+		
 		public void StartAnimating ()
 		{
 			if (IsAnimating)
 				return;
 			
-			CreateFrameBuffer ();
-			CADisplayLink displayLink = UIScreen.MainScreen.CreateDisplayLink (this, new Selector ("drawFrame"));
-			displayLink.FrameInterval = frameInterval;
-			displayLink.AddToRunLoop (NSRunLoop.Current, NSRunLoop.NSDefaultRunLoopMode);
-			this.displayLink = displayLink;
+			if (started)
+				this.Stop ();
+			
+			started = true;
 			
 			IsAnimating = true;
+			
+			this.Run (60.0);
 		}
-
+		
 		public void StopAnimating ()
 		{
-			if (!IsAnimating)
-				return;
-			displayLink.Invalidate ();
-			displayLink = null;
-			DestroyFrameBuffer ();
+			if (started)
+				this.Stop ();
+			
+			this.Run (5.0);
+			
 			IsAnimating = false;
 		}
-
-		[Export ("drawFrame")]
-		void DrawFrame ()
-		{
-			OnRenderFrame (new FrameEventArgs ());
-		}
-
-		#endregion
-
+		
 		protected override void OnRenderFrame (FrameEventArgs e)
 		{
 			base.OnRenderFrame (e);
 			
 			MakeCurrent ();
-
+			
+			GL1.Viewport (0, 0, Size.Width, Size.Height);
+			
 			this.DrawView ();
+			
+			SwapBuffers ();
 		}
-
-		#endregion
-
+		
 		#region Member Definitions - EAGLView.h
-
+		
 		private const int kCircleSegments = 36;
-
-		private int backingWidth;
-		private int backingHeight;
-
+		
 		private uint mode;
 		
 		private float[] innerCircleVertices = new float[kCircleSegments * 3], outerCircleVertices = new float[kCircleSegments * 3];
-
+		
 		// teapot
 		private float rot;
 		
@@ -186,11 +131,11 @@ namespace MusicCube
 		
 		// OpenAL playback is wired up in IB
 		private MusicCubePlayback playback = new MusicCubePlayback ();
-
+		
 		#endregion
-
+		
 		#region Member Definitions - EAGLView.m
-
+		
 		//private const int USE_DEPTH_BUFFER = 1;
 		
 		private const float kInnerCircleRadius = 1.0f;
@@ -202,13 +147,13 @@ namespace MusicCube
 		
 		private const float kButtonLeftSpace = 1.1f;
 		#endregion
-
+		
 		#region Init
 		
 		private void BuildCircleVertices (ref float[] vertices, int segments, float radius)
 		{
 			float segmentDegrees = 360.0f / segments;
-
+			
 			int count = 0;
 			for (float i = 0; i < 360.0f; i += segmentDegrees) {
 				vertices [count++] = 0;									//x
@@ -231,12 +176,12 @@ namespace MusicCube
 		{
 			return degrees * (float)Math.PI / 180.0f;
 		}
-
+		
 		private float RadiansToDegrees (float radians)
 		{
 			return radians * 180.0f / (float)Math.PI;
 		}
-
+		
 		private void SetTeapotMaterial ()
 		{
 			float[] lightAmbient = {0.2f, 0.2f, 0.2f, 1.0f};
@@ -246,7 +191,7 @@ namespace MusicCube
 			float[] matSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
 			float[] lightPosition = {0.0f, 0.0f, 1.0f, 0.0f};
 			float lightShininess = 100.0f;
-
+			
 			GL1.Material (All1.FrontAndBack, All1.Ambient, matAmbient);
 			GL1.Material (All1.FrontAndBack, All1.Diffuse, matDiffuse);
 			GL1.Material (All1.FrontAndBack, All1.Specular, matSpecular);
@@ -294,11 +239,11 @@ namespace MusicCube
 						texContext.DrawImage (new System.Drawing.RectangleF (0.0f, 0.0f, (float)width, (float)height), image.CGImage);
 						
 						// setup texture parameters
-						GL.TexParameter (TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)All.Linear);
-						GL.TexParameter (TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)All.Linear);
-						GL.TexParameter (TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)All.ClampToEdge);
-						GL.TexParameter (TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)All.ClampToEdge);
-
+						GL1.TexParameter (All1.Texture2D, All1.TextureMagFilter, (int)All1.Linear);
+						GL1.TexParameter (All1.Texture2D, All1.TextureMinFilter, (int)All1.Linear);
+						GL1.TexParameter (All1.Texture2D, All1.TextureWrapS, (int)All1.ClampToEdge);
+						GL1.TexParameter (All1.Texture2D, All1.TextureWrapT, (int)All1.ClampToEdge);
+						
 						GL1.TexImage2D (All1.Texture2D, 0, (int)All1.Rgba, width, height, 0, All1.Rgba, All1.UnsignedByte, bytes);
 					}
 				}
@@ -335,20 +280,20 @@ namespace MusicCube
 //		}
 
 		#endregion
-
+		
 		#region Draw
-
+		
 		private void DrawCircle (float[] vertices, int segments)
 		{
 			GL1.EnableClientState (All1.VertexArray);
-
+			
 			GL1.VertexPointer (3, All1.Float, 0, vertices);
-
+			
 			GL1.PushMatrix ();
 			GL1.Color4 (0.2f, 0.7f, 0.2f, 1.0f);
 			GL1.DrawArrays (All1.LineLoop, 0, segments);
 			GL1.PopMatrix ();
-
+			
 			GL1.DisableClientState (All1.VertexArray);
 		}
 //		- (void)drawCircle:(GLfloat*)vertices withNumOfSegments:(GLint)segments
@@ -365,19 +310,20 @@ namespace MusicCube
 //			glDisableClientState(GL_VERTEX_ARRAY);
 //		}
 //		
+
 		private void DrawTeapot ()
 		{
 			int start = 0, i = 0;
-
+			
 			GL1.Enable (All1.Lighting);
 			GL1.Enable (All1.Light0);
 			GL1.Enable (All1.Normalize);
 			GL1.EnableClientState (All1.VertexArray);
 			GL1.EnableClientState (All1.NormalArray);
-
+			
 			GL1.VertexPointer (3, All1.Float, 0, Teapot.teapot_vertices);
 			GL1.NormalPointer (All1.Float, 0, Teapot.teapot_normals);
-
+			
 			if (!showDesc)
 				rot -= 1.0f;
 			float radius = (kOuterCircleRadius + kInnerCircleRadius) / 2.0f;
@@ -386,14 +332,14 @@ namespace MusicCube
 				(float)Math.Cos (DegreesToRadians (rot)) * radius,
 				(float)Math.Sin (DegreesToRadians (rot)) * radius
 			};
-
+			
 			GL1.PushMatrix ();
 			GL1.LoadIdentity ();
-
+			
 			// move clockwise along the circle
 			GL1.Translate (teapotPos [0], teapotPos [1], teapotPos [2]);
 			GL1.Scale (kTeapotScale, kTeapotScale, kTeapotScale);
-
+			
 			// add rotation;
 			float rotYInRadians;
 			if (mode == 2 || mode == 4)
@@ -402,7 +348,7 @@ namespace MusicCube
 			else
 				// in mode 1 and 3, the teapot (listener) always faces to the cube (sound source)
 				rotYInRadians = (float)Math.Atan2 (Convert.ToDouble (teapotPos [2] - cubePos [2]), Convert.ToDouble (teapotPos [1] - cubePos [1]));
-
+			
 			GL1.Rotate (-90.0f, 0, 0, 1); //we want to display in landscape mode
 			GL1.Rotate (RadiansToDegrees (rotYInRadians), 0, 1, 0);
 			
@@ -417,27 +363,28 @@ namespace MusicCube
 			if (start < Teapot.num_teapot_indices) {
 				this.DrawTeapotPatch (start, i - start - 1);
 			}
-
+			
 			GL1.PopMatrix ();
-
+			
 			GL1.Disable (All1.Lighting);
 			GL1.Disable (All1.Light0);
 			GL1.Disable (All1.Normalize);
 			GL1.DisableClientState (All1.VertexArray);
 			GL1.DisableClientState (All1.NormalArray);
-
+			
 			// update playback
 			playback.ListenerPos = teapotPos; //listener's position
 			playback.ListenerRotation = rotYInRadians - (float)Math.PI; //listener's rotation in Radians
 		}
-
+		
 		private void DrawTeapotPatch (int start, int patchIndicesCount)
 		{
 			var curPatchIndices = new short[patchIndicesCount];
 			Array.Copy (Teapot.teapot_indices, start, curPatchIndices, 0, patchIndicesCount);
 			GL1.DrawElements (All1.TriangleStrip, patchIndicesCount, All1.UnsignedShort, curPatchIndices);
+			// TODO: look into the usage of GL1.DrawElements(..) using the (.., ref T3 indices) overload
 		}
-
+		
 //		- (void)drawTeapot
 //		{
 //			int	start = 0, i = 0;
@@ -498,7 +445,7 @@ namespace MusicCube
 //			playback.listenerRotation = rotYInRadians - M_PI; //listener's rotation in Radians
 //		}
 //		
-
+		
 		// simple cube data
 		// our sound source is omnidirectional, adjust the vertices 
 		// so that speakers in textures point to all different directions
@@ -513,22 +460,22 @@ namespace MusicCube
 		
 		private readonly float[][] cubeColors = {
 			new float[] {1, 0, 0, 1}, new float[] {0, 1, 0, 1}, new float[] {0, 0, 1, 1}, new float[] {1, 1, 0, 1}, new float[] {
-			0,
-			1,
-			1,
-			1
-		}, new float[] {
-			1,
-			0,
-			1,
-			1
-		},
+				0,
+				1,
+				1,
+				1
+			}, new float[] {
+				1,
+				0,
+				1,
+				1
+			},
 		};
 		
 		private readonly float[] cubeTexCoords = new float[8] {
 			1, 0,  1, 1,  0, 0,  0, 1,
 		};
-
+		
 		private void DrawCube ()
 		{	
 			GL1.BindTexture (All1.Texture2D, texture [0]);
@@ -555,7 +502,7 @@ namespace MusicCube
 			GL1.Rotate (cubeRot, 0, 1, 1);
 			
 			GL1.TexCoordPointer (2, All1.Float, 0, cubeTexCoords);
-
+			
 			int f;
 			for (f = 0; f < 6; f++) {
 				GL1.Color4 (cubeColors [f] [0], cubeColors [f] [1], cubeColors [f] [2], cubeColors [f] [3]);
@@ -628,7 +575,7 @@ namespace MusicCube
 		private readonly float[] buttonVertices = {
 			-1,-1,0,  1,-1,0, -1, 1,0,  1, 1,0
 		};
-
+		
 		// numbers 1-4 are stored in a sprite sheet
 		// in the first row, numbers are shown as unselected
 		private readonly float[][] buttonNotSelectedTexCoords = {
@@ -649,7 +596,7 @@ namespace MusicCube
 		private void DrawModes ()
 		{
 			GL1.BindTexture (All1.Texture2D, texture [1]);
-
+			
 			GL1.VertexPointer (3, All1.Float, 0, buttonVertices);
 			
 			// draw each button in its right mode (selected/unselected)
@@ -873,19 +820,19 @@ namespace MusicCube
 			GL1.Translate (0.07f, 0.0f, 0.0f);
 			GL1.Rotate (-30.0f, 0.0f, 1.0f, 0.0f);
 			GL1.MatrixMode (All1.Modelview);
-
+			
 			this.DrawCircle (innerCircleVertices, kCircleSegments);
 			this.DrawCircle (outerCircleVertices, kCircleSegments);
 			this.DrawTeapot ();
-
+			
 			// enable GL states for texturing
 			// this includes cube and 2D instructions and buttons
 			GL1.EnableClientState (All1.VertexArray);
 			GL1.EnableClientState (All1.TextureCoordArray);
 			GL1.Enable (All1.Texture2D);
-
+			
 			this.DrawCube ();
-
+			
 			if (!showDesc)
 				GL1.Disable (All1.DepthTest);
 			
@@ -908,8 +855,6 @@ namespace MusicCube
 			
 			if (showDesc)
 				GL1.Disable (All1.DepthTest);
-			
-			this.SwapBuffers ();
 		}
 //		- (void)drawView {
 //			
@@ -967,11 +912,11 @@ namespace MusicCube
 //			glBindRenderbufferOES(GL_RENDERBUFFER_OES, viewRenderbuffer);
 //			[context presentRenderbuffer:GL_RENDERBUFFER_OES];
 //		}
-
+		
 		#endregion
-
+		
 		#region TouchEvents
-
+		
 		public override void TouchesEnded (NSSet touches, UIEvent evt)
 		{
 			UITouch touch = (UITouch)(touches.Count == 1 ? touches.AnyObject : null);
@@ -985,11 +930,11 @@ namespace MusicCube
 				if (!showDesc) {
 					// Compute the bounds of the four buttons (1,2,3,4)
 					// for 2D drawing,  projection transform is set to glOrthof(-1.0f, 1.0f, -1.5f, 1.5f, -10.0f, 10.0f);
-					int buttonSize = Convert.ToInt32 (kButtonScale * backingWidth);
+					int buttonSize = Convert.ToInt32 (kButtonScale * this.Size.Width);
 					int xmin, xmax, ymin, ymax;
 					xmin = 0;
 					xmax = buttonSize;
-					ymax = Convert.ToInt32 ((1 - kButtonLeftSpace / 3.0) * backingHeight);
+					ymax = Convert.ToInt32 ((1 - kButtonLeftSpace / 3.0) * this.Size.Height);
 					ymin = ymax - buttonSize * 4;
 					
 					// if touch point is in the bounds, compute the selected mode
@@ -1111,9 +1056,9 @@ namespace MusicCube
 //				}
 //			}
 //		}
-
+		
 		#endregion
-
+		
 	}
 	
 }
