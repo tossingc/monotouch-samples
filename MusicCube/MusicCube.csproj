@@ -98,7 +98,6 @@
   </ItemGroup>
   <ItemGroup>
     <InterfaceDefinition Include="OpenGLViewController_iPhone.xib" />
-    <InterfaceDefinition Include="OpenGLViewController_iPad.xib" />
   </ItemGroup>
   <ItemGroup>
     <BundleResource Include="Resources\Icon-72.png" />

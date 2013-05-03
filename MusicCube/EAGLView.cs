@@ -28,11 +28,28 @@ namespace MusicCube
 			LayerColorFormat = EAGLColorFormat.RGBA8;
 			ContextRenderingApi = EAGLRenderingAPI.OpenGLES1;
 		}
-		
+
+		/// <summary>
+		/// Setups the depth render buffer.
+		/// 
+		/// ported from accepted answer: http://stackoverflow.com/questions/11284499/opengl-es-1-1-depth-buffer-not-working-using-monotouch-on-ios-5
+		/// </summary>
+		private void SetupDepthRenderBuffer ()
+		{
+			uint depthRenderBuffer;
+			OpenTK.Graphics.ES20.GL.GenRenderbuffers (1, out depthRenderBuffer);
+			OpenTK.Graphics.ES20.GL.BindRenderbuffer (OpenTK.Graphics.ES20.RenderbufferTarget.Renderbuffer, depthRenderBuffer);
+			OpenTK.Graphics.ES20.GL.RenderbufferStorage (OpenTK.Graphics.ES20.RenderbufferTarget.Renderbuffer, OpenTK.Graphics.ES20.RenderbufferInternalFormat.DepthComponent16, this.Size.Width, this.Size.Height);
+			OpenTK.Graphics.ES20.GL.FramebufferRenderbuffer (OpenTK.Graphics.ES20.FramebufferTarget.Framebuffer, OpenTK.Graphics.ES20.FramebufferSlot.DepthAttachment, OpenTK.Graphics.ES20.RenderbufferTarget.Renderbuffer, depthRenderBuffer);
+		}
+
 		protected override void OnLoad (EventArgs e)
 		{
 			base.OnLoad (e);
-			
+
+			// TODO: add this to the base class - iPhoneOSGameView
+			this.SetupDepthRenderBuffer ();
+
 			mode = 1;
 			
 			// create vertex arrays for the circle paths
@@ -380,7 +397,8 @@ namespace MusicCube
 			var curPatchIndices = new short[patchIndicesCount];
 			Array.Copy (Teapot.teapot_indices, start, curPatchIndices, 0, patchIndicesCount);
 			GL1.DrawElements (All1.TriangleStrip, patchIndicesCount, All1.UnsignedShort, curPatchIndices);
-			// TODO: look into the usage of GL1.DrawElements(..) using the (.., ref T3 indices) overload
+			// TODO: look into the usage of the (.., ref T3 indices) overload of the GL1.DrawElements(..) method 
+			// yes, I know.. this is grossly wasteful
 		}
 		
 		//		- (void)drawTeapot
@@ -471,7 +489,7 @@ namespace MusicCube
 			
 			if (!showDesc)
 				cubeRot += 3;
-			
+
 			GL1.PushMatrix ();
 			GL1.LoadIdentity ();
 			GL1.Translate (cubePos [0], cubePos [1], cubePos [2]); 
