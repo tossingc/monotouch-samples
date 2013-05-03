@@ -12,15 +12,12 @@ namespace MusicCube
 {
 	public class MusicCubePlayback : NSObject
 	{
-		private uint _source;
-		private uint _buffer;
-		private byte[] _data;
-		private float[] _sourcePos = new float[3];
-		private float[] _listenerPos = new float[3];
-		private float _listenerRotation;
-
-		//private bool _isPlaying;
-		//private bool _wasInterrupted;
+		private uint source;
+		private uint buffer;
+		private byte[] data;
+		private float[] sourcePos = new float[3];
+		private float[] listenerPos = new float[3];
+		private float listenerRotation;
 
 		#region Object Init / Maintenance
 
@@ -69,15 +66,8 @@ namespace MusicCube
 
 		#endregion
 
-		public bool IsPlaying {
-			get;
-			set;
-		}
-
-		public bool WasInterrupted {
-			get;
-			set;
-		}
+		public bool IsPlaying { get; private set; }
+		public bool WasInterrupted  { get; private set; }
 
 		#region OpenAL
 
@@ -92,26 +82,20 @@ namespace MusicCube
 			NSBundle bundle = NSBundle.MainBundle;
 
 			// get some audio data from a wave file
-			var fileURL = NSUrl.FromFilename (bundle.PathForResource ("sound", "wav"));
-
-			//			if (fileURL) {	
-			_data = MyGetOpenALAudioData (fileURL, out size, out format, out freq);
-			fileURL.Dispose ();
+			using (var fileURL = NSUrl.FromFilename (bundle.PathForResource ("sound", "wav"))) {
+				data = MyGetOpenALAudioData (fileURL, out size, out format, out freq);
+			}
 
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				throw new Exception (string.Format ("error loading sound: %x\n", error));
 			}
 				
 			// use the static buffer data API
-			AL.BufferData (Convert.ToInt32 (_buffer), format, _data, size, Convert.ToInt32 (freq));
+			AL.BufferData (Convert.ToInt32 (buffer), format, data, size, Convert.ToInt32 (freq));
 
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				throw new Exception (string.Format ("error attaching audio to buffer: %x\n", error));
 			}		
-			//			} else {
-			//				throw new Exception (string.Format ("Could not find file!\n"));
-			//				_data = null;
-			//			}
 		}
 		//		- (void) initBuffer
 		//		{
@@ -156,16 +140,16 @@ namespace MusicCube
 			AL.GetError (); // Clear the error
 			
 			// Turn Looping ON
-			AL.Source (_source, ALSourceb.Looping, true);
+			AL.Source (source, ALSourceb.Looping, true);
 
 			// Set Source Position
-			AL.Source (_source, ALSource3f.Position, _sourcePos [0], _sourcePos [1], _sourcePos [2]);
+			AL.Source (source, ALSource3f.Position, sourcePos [0], sourcePos [1], sourcePos [2]);
 
 			// Set Source Reference Distance
-			AL.Source (_source, ALSourcef.ReferenceDistance, 0.15f);
+			AL.Source (source, ALSourcef.ReferenceDistance, 0.15f);
 
 			// attach OpenAL Buffer to OpenAL Source
-			AL.Source (_source, ALSourcei.Buffer, Convert.ToInt32 (_buffer));
+			AL.Source (source, ALSourcei.Buffer, Convert.ToInt32 (buffer));
 
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				throw new Exception ("Error attaching buffer to source: " + error.ToString ());
@@ -212,13 +196,13 @@ namespace MusicCube
 			Alc.MakeContextCurrent (newContext);
 
 			// Create some OpenAL Buffer Objects
-			AL.GenBuffers (1, out _buffer);
+			AL.GenBuffers (1, out buffer);
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				throw new Exception (string.Format ("Error Generating Buffers: %x", error));
 			}
 					
 			// Create some OpenAL Source Objects
-			AL.GenSources (1, out _source);
+			AL.GenSources (1, out source);
 			if (AL.GetError () != ALError.NoError) {
 				throw new Exception (string.Format ("Error generating sources! %x\n", error));
 			}
@@ -228,7 +212,6 @@ namespace MusicCube
 
 			this.InitBuffer ();
 			this.InitSource ();
-
 		}
 		//		- (void)initOpenAL
 		//		{
@@ -273,22 +256,6 @@ namespace MusicCube
 		//			[self initSource];
 		//		}
 
-		public void TeardownOpenAL ()
-		{
-			// Delete the Sources
-			AL.DeleteSources (1, ref _source);
-			// Delete the Buffers
-			AL.DeleteBuffers (1, ref _buffer);
-			
-			//Get active context (there can only be one)
-			OpenTK.ContextHandle context = Alc.GetCurrentContext ();
-			//Get device for active context
-			IntPtr device = Alc.GetContextsDevice (context);
-			//Release context
-			Alc.DestroyContext (context);
-			//Close device
-			Alc.CloseDevice (device);
-		}
 		#endregion
 
 		#region Play / Pause
@@ -299,7 +266,7 @@ namespace MusicCube
 
 			Console.WriteLine ("Start!\n");
 			// Begin playing our source file
-			AL.SourcePlay (_source);
+			AL.SourcePlay (source);
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				Console.WriteLine ("error starting source: %x\n", error);
 			} else {
@@ -314,7 +281,7 @@ namespace MusicCube
 
 			Console.WriteLine ("Stop!!\n");
 			// Stop playing our source file
-			AL.SourceStop (_source);
+			AL.SourceStop (source);
 			if ((error = AL.GetError ()) != ALError.NoError) {
 				Console.WriteLine ("error stopping source: %x\n", error);
 			} else {
@@ -328,33 +295,33 @@ namespace MusicCube
 		#region Setters / Getters
 		
 		public float[] SourcePos {
-			get { return _sourcePos; }
+			get { return sourcePos; }
 			set {
 				for (int i = 0; i < 3; i++) {
-					_sourcePos [i] = value [i];
+					sourcePos [i] = value [i];
 				}
 				
 				// Move our audio source coordinates
-				AL.Source (_source, ALSource3f.Position, _sourcePos [0], _sourcePos [1], _sourcePos [2]);
+				AL.Source (source, ALSource3f.Position, sourcePos [0], sourcePos [1], sourcePos [2]);
 			}
 		}
 		
 		public float[] ListenerPos {
-			get { return _listenerPos; }
+			get { return listenerPos; }
 			set { 
 				for (int i=0; i<3; i++)
-					_listenerPos [i] = value [i];
+					listenerPos [i] = value [i];
 				
 				// Move our listener coordinates
-				AL.Listener (ALListener3f.Position, _listenerPos [0], _listenerPos [1], _listenerPos [2]);
+				AL.Listener (ALListener3f.Position, listenerPos [0], listenerPos [1], listenerPos [2]);
 			}
 		}
 		
 		public float ListenerRotation {
-			get { return _listenerRotation; }
+			get { return listenerRotation; }
 			set {
 				var radians = value;
-				_listenerRotation = radians;
+				listenerRotation = radians;
 				float[] ori = {0, (float)Math.Cos (radians), (float)Math.Sin (radians), 1, 0, 0};
 				
 				// Set our listener orientation (rotation)
@@ -366,29 +333,10 @@ namespace MusicCube
 		
 		#region MyOpenALSupport.h
 
-//		typedef ALvoid	AL_APIENTRY	(*alBufferDataStaticProcPtr) (const ALint bid, ALenum format, ALvoid* data, ALsizei size, ALsizei freq);
-//		ALvoid  alBufferDataStaticProc(const ALint bid, ALenum format, ALvoid* data, ALsizei size, ALsizei freq)
-//		{
-//			static	alBufferDataStaticProcPtr	proc = NULL;
-//			
-//			if (proc == NULL) {
-//				proc = (alBufferDataStaticProcPtr) alcGetProcAddress(NULL, (const ALCchar*) "alBufferDataStatic");
-//			}
-//			
-//			if (proc)
-//				proc(bid, format, data, size, freq);
-//			
-//			return;
-//		}
-		
-		//private void MyGetOpenALAudioData (NSUrl inFileURL, ALsizei *outDataSize, ALenum *outDataFormat, ALsizei*	outSampleRate)
 		private byte[] MyGetOpenALAudioData (NSUrl inFileURL, out int outDataSize, out ALFormat outDataFormat, out double outSampleRate)
 		{
-			//OSStatus err = noErr;	
 			UInt64 fileDataSize = 0;
 			AudioStreamBasicDescription theFileFormat;
-			//UInt32 thePropertySize = sizeof(theFileFormat);
-			//AudioFileID						afid = 0;
 			byte[] theData = null;
 			outDataSize = 0;
 			outDataFormat = ALFormat.Mono8;
@@ -403,9 +351,9 @@ namespace MusicCube
 				}
 
 				// TODO: convert TestAudioFormatNativeEndian method
-//			if ((theFileFormat.Format != AudioFormatType.LinearPCM) || (!TestAudioFormatNativeEndian(theFileFormat))) { 
-//				printf("MyGetOpenALAudioData - Unsupported Format, must be little-endian PCM\n"); goto Exit;
-//			}
+//				if ((theFileFormat.Format != AudioFormatType.LinearPCM) || (!TestAudioFormatNativeEndian(theFileFormat))) { 
+//					printf("MyGetOpenALAudioData - Unsupported Format, must be little-endian PCM\n"); goto Exit;
+//				}
 			
 				if ((theFileFormat.BitsPerChannel != 8) && (theFileFormat.BitsPerChannel != 16)) { 
 					throw new Exception ("MyGetOpenALAudioData - Unsupported Format, must be 8 or 16 bit PCM\n"); 
@@ -416,14 +364,6 @@ namespace MusicCube
 				var fileDataSizeIntPtr = audioFile.GetProperty (AudioFileProperty.AudioDataByteCount, out throwAwaySize);
 				fileDataSize = Convert.ToUInt64 (System.Runtime.InteropServices.Marshal.ReadInt64 (fileDataSizeIntPtr));
 				outDataSize = Convert.ToInt32 (fileDataSize);
-//			
-//			
-//				thePropertySize = sizeof(fileDataSize);
-//				err = AudioFileGetProperty (afid, kAudioFilePropertyAudioDataByteCount, &thePropertySize, &fileDataSize);
-//				if (err) {
-//					Console.WriteLine ("MyGetOpenALAudioData: AudioFileGetProperty(kAudioFilePropertyAudioDataByteCount) FAILED, Error = %ld\n", err);
-//					return theData;
-//				}
 			
 				theData = new byte[fileDataSize];
 
@@ -432,31 +372,88 @@ namespace MusicCube
 
 				outDataFormat = (theFileFormat.ChannelsPerFrame > 1) ? ALFormat.Stereo16 : ALFormat.Mono16;
 				outSampleRate = theFileFormat.SampleRate;
-//
-//				UInt32 dataSize = fileDataSize;
-//				theData = malloc (dataSize);
-//				if (theData) {
-//					AudioFileReadBytes (afid, false, 0, &dataSize, theData);
-//					if (err == noErr) {
-//						// success
-//						*outDataSize = (ALsizei)dataSize;
-//						*outDataFormat = (theFileFormat.mChannelsPerFrame > 1) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
-//						*outSampleRate = (ALsizei)theFileFormat.mSampleRate;
-//					} else { 
-//						// failure
-//						free (theData);
-//						theData = NULL; // make sure to return NULL
-//						printf ("MyGetOpenALAudioData: ExtAudioFileRead FAILED, Error = %ld\n", err);
-//						goto Exit;
-//					}	
-//				}
-				return theData;
-				//return audioFile.r
-			}
 
-			//	return theData;
+				return theData;
+			}
 		}
-//		
+//		void* MyGetOpenALAudioData(CFURLRef inFileURL, ALsizei *outDataSize, ALenum *outDataFormat, ALsizei*	outSampleRate)
+//		{
+//			OSStatus						err = noErr;	
+//			UInt64							fileDataSize = 0;
+//			AudioStreamBasicDescription		theFileFormat;
+//			UInt32							thePropertySize = sizeof(theFileFormat);
+//			AudioFileID						afid = 0;
+//			void*							theData = NULL;
+//			
+//			// Open a file with ExtAudioFileOpen()
+//			err = AudioFileOpenURL(inFileURL, kAudioFileReadPermission, 0, &afid);
+//			if(err) { printf("MyGetOpenALAudioData: AudioFileOpenURL FAILED, Error = %ld\n", err); goto Exit; }
+//			
+//			// Get the audio data format
+//			err = AudioFileGetProperty(afid, kAudioFilePropertyDataFormat, &thePropertySize, &theFileFormat);
+//			if(err) { printf("MyGetOpenALAudioData: AudioFileGetProperty(kAudioFileProperty_DataFormat) FAILED, Error = %ld\n", err); goto Exit; }
+//			
+//			if (theFileFormat.mChannelsPerFrame > 2)  { 
+//				printf("MyGetOpenALAudioData - Unsupported Format, channel count is greater than stereo\n"); goto Exit;
+//			}
+//			
+//			if ((theFileFormat.mFormatID != kAudioFormatLinearPCM) || (!TestAudioFormatNativeEndian(theFileFormat))) { 
+//				printf("MyGetOpenALAudioData - Unsupported Format, must be little-endian PCM\n"); goto Exit;
+//			}
+//			
+//			if ((theFileFormat.mBitsPerChannel != 8) && (theFileFormat.mBitsPerChannel != 16)) { 
+//				printf("MyGetOpenALAudioData - Unsupported Format, must be 8 or 16 bit PCM\n"); goto Exit;
+//			}
+//			
+//			
+//			thePropertySize = sizeof(fileDataSize);
+//			err = AudioFileGetProperty(afid, kAudioFilePropertyAudioDataByteCount, &thePropertySize, &fileDataSize);
+//			if(err) { printf("MyGetOpenALAudioData: AudioFileGetProperty(kAudioFilePropertyAudioDataByteCount) FAILED, Error = %ld\n", err); goto Exit; }
+//			
+//			// Read all the data into memory
+//			UInt32		dataSize = fileDataSize;
+//			theData = malloc(dataSize);
+//			if (theData)
+//			{
+//				AudioFileReadBytes(afid, false, 0, &dataSize, theData);
+//				if(err == noErr)
+//				{
+//					// success
+//					*outDataSize = (ALsizei)dataSize;
+//					*outDataFormat = (theFileFormat.mChannelsPerFrame > 1) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16;
+//					*outSampleRate = (ALsizei)theFileFormat.mSampleRate;
+//				}
+//				else 
+//				{ 
+//					// failure
+//					free (theData);
+//					theData = NULL; // make sure to return NULL
+//					printf("MyGetOpenALAudioData: ExtAudioFileRead FAILED, Error = %ld\n", err); goto Exit;
+//				}	
+//			}
+//			
+//		Exit:
+//				// Dispose the ExtAudioFileRef, it is no longer needed
+//				if (afid) AudioFileClose(afid);
+//			return theData;
+//		}
+
+		public void TeardownOpenAL ()
+		{
+			// Delete the Sources
+			AL.DeleteSources (1, ref source);
+			// Delete the Buffers
+			AL.DeleteBuffers (1, ref buffer);
+			
+			//Get active context (there can only be one)
+			OpenTK.ContextHandle context = Alc.GetCurrentContext ();
+			//Get device for active context
+			IntPtr device = Alc.GetContextsDevice (context);
+			//Release context
+			Alc.DestroyContext (context);
+			//Close device
+			Alc.CloseDevice (device);
+		}
 //		void TeardownOpenAL()
 //		{
 //			ALCcontext	*context = NULL;
@@ -477,12 +474,6 @@ namespace MusicCube
 //			//Close device
 //			alcCloseDevice(device);
 //		}
-
-		#endregion
-
-		#region Object Init / Maintenance
-
-
 
 		#endregion
 

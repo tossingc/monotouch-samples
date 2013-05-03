@@ -18,7 +18,7 @@ namespace MusicCube
 	[Register ("EAGLView")]
 	public class EAGLView : iPhoneOSGameView
 	{
-		
+
 		private bool started = false;
 		
 		[Export ("initWithCoder:")]
@@ -135,8 +135,6 @@ namespace MusicCube
 		#endregion
 		
 		#region Member Definitions - EAGLView.m
-		
-		//private const int USE_DEPTH_BUFFER = 1;
 		
 		private const float kInnerCircleRadius = 1.0f;
 		private const float kOuterCircleRadius = 1.1f;
@@ -459,17 +457,8 @@ namespace MusicCube
 		};
 		
 		private readonly float[][] cubeColors = {
-			new float[] {1, 0, 0, 1}, new float[] {0, 1, 0, 1}, new float[] {0, 0, 1, 1}, new float[] {1, 1, 0, 1}, new float[] {
-				0,
-				1,
-				1,
-				1
-			}, new float[] {
-				1,
-				0,
-				1,
-				1
-			},
+			new float[] {1, 0, 0, 1}, new float[] {0, 1, 0, 1}, new float[] {0, 0, 1, 1}, 
+			new float[] {1, 1, 0, 1}, new float[] {0, 1, 1, 1}, new float[] {1, 0, 1, 1},
 		};
 		
 		private readonly float[] cubeTexCoords = new float[8] {
@@ -502,14 +491,14 @@ namespace MusicCube
 			GL1.Rotate (cubeRot, 0, 1, 1);
 			
 			GL1.TexCoordPointer (2, All1.Float, 0, cubeTexCoords);
-			
+
 			int f;
 			for (f = 0; f < 6; f++) {
 				GL1.Color4 (cubeColors [f] [0], cubeColors [f] [1], cubeColors [f] [2], cubeColors [f] [3]);
 				GL1.VertexPointer (3, All1.Float, 0, cubeVertices [f]);
 				GL1.DrawArrays (All1.TriangleStrip, 0, 4);
 			}
-			
+
 			GL1.PopMatrix ();
 			
 			GL1.BindTexture (All1.Texture2D, 0);
